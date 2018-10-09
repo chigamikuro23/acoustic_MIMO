@@ -1,2 +1,2 @@
-# acoustic_ML
-MEng Design project code
+# Acoustic Localization and Tracking via Machine Learning
+MEng Design project code. Work in progress.
