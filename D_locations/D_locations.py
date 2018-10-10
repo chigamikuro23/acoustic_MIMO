@@ -4,9 +4,13 @@ from tensorflow import keras
 import numpy as np
 import matplotlib.pyplot as plt
 import math
-
+from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.pyplot as plt
 
 #Read .mat data into memory
+
+plt.close("all")
+
 D_content = sio.loadmat('mat_files/D_VLOS_scaled_mean_mean_alpha6_fft_abs_Frobenius_sphericalWave_B32_U2048.mat')
 location_content = sio.loadmat('mat_files/randLocationU2048VIP.mat')
 
@@ -43,4 +47,15 @@ test_loss, test_acc = model.evaluate(test_impulses, test_labels)
 
 print('Test accuracy: ', test_acc)
 
+predictions = model.predict(test_impulses)
 
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+
+ax.scatter(test_labels[:,0], test_labels[:,1], test_labels[:,2], c='r', marker='o')
+
+ax.set_xlabel('X Label')
+ax.set_ylabel('Y Label')
+ax.set_zlabel('Z Label')
+
+plt.show()
