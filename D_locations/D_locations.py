@@ -85,14 +85,17 @@ plt.show()
 
 model = keras.Sequential([
     keras.layers.Dense(100, activation='relu'),
-    keras.layers.Dense(2, activation='linear')
+    keras.layers.Dropout(.25),
+    keras.layers.Dense(50, activation='relu'),
+    keras.layers.Dropout(.25),
+    keras.layers.Dense(2, activation='linear'),
 ])
 
 model.compile(optimizer='adam',
-              loss='mape',
-              metrics=None)
+              loss='mse',
+              metrics=['mape'])
 
-hist = model.fit(impulses, labels, epochs=100, batch_size=32, validation_split=.2)
+hist = model.fit(impulses, labels, epochs=100, batch_size=25, validation_split=.2)
 
 
 
@@ -104,17 +107,17 @@ predictions = model.predict(test_impulses)
 
 
 plt.figure(1)
-'''
+
 plt.subplot(211)
-plt.plot(hist.history['acc'])
-plt.plot(hist.history['val_acc'])
-plt.title('Model Accuracy')
-plt.ylabel('Accuracy')
+plt.plot(hist.history['mean_absolute_percentage_error'])
+plt.plot(hist.history['val_mean_absolute_percentage_error'])
+plt.title('Model Abs Percentage Error')
+plt.ylabel('Percent Error')
 plt.xlabel('epoch')
 plt.legend(['train','test'], loc='upper left')
 
 plt.subplot(212)
-'''
+
 plt.plot(hist.history['loss'])
 plt.plot(hist.history['val_loss'])
 plt.title('model loss')
