@@ -30,16 +30,21 @@ d2, n = locations.shape
 
 
 
+#train_length = math.floor(.8*n)
+impulses = np.transpose(impulse_responses)
+labels = np.transpose(locations[:2,:])
+
 train_length = math.floor(.8*n)
+test_impulses = impulses[train_length:,:]
+test_labels = labels[train_length:,:]
 
-labels = np.transpose(np.rint(locations[:2,:]))
-
-
+'''
 train_impulses = np.transpose(impulse_responses[:, :train_length])
 train_labels = labels[:train_length,:]
 
 test_impulses = np.transpose(impulse_responses[:,train_length:])
 test_labels = labels[train_length:,:]
+
 temp = test_labels.copy()
 
 mlb = MultiLabelBinarizer()
@@ -51,7 +56,7 @@ test_labels=labels[train_length:, :]
 
 
 
-'''
+
 fig = plt.figure()
 ax = fig.add_subplot(111)
 
@@ -76,48 +81,60 @@ plt.show()
 
 '''
 
-print(len(mlb.classes_))
 
 
 model = keras.Sequential([
-    keras.layers.Dense(1024, activation='relu'),
-    keras.layers.Dropout(0.25),
-    keras.layers.Dense(1000, activation='relu'),
-    keras.layers.Dropout(0.25),
-    keras.layers.Dense(num_coordinates, activation='sigmoid')
+    keras.layers.Dense(100, activation='relu'),
+    keras.layers.Dense(2, activation='linear')
 ])
 
-model.compile(optimizer='sgd',
-              loss='binary_crossentropy',
-              metrics=['accuracy'])
+model.compile(optimizer='adam',
+              loss='mape',
+              metrics=None)
 
-model.fit(train_impulses, train_labels, epochs=30, batch_size=128, validation_data=(test_impulses,test_labels))
+hist = model.fit(impulses, labels, epochs=100, batch_size=32, validation_split=.2)
 
-test_loss, test_acc = model.evaluate(test_impulses, test_labels)
 
-print('Test accuracy: ', test_acc)
 
 predictions = model.predict(test_impulses)
 
 
 
-print(predictions.shape)
-
-idx = (-predictions).argsort()[:,:2]
-print(list(zip(mlb.classes_[idx[:,1]],mlb.classes_[idx[:,0]])))
-
-fig = plt.figure()
-ax = fig.add_subplot(111)
-
-ax.scatter(mlb.classes_[idx[:,1]], mlb.classes_[idx[:,0]], c='b', marker='s', label='Predicted')
-
-
-ax.scatter(temp[:,0], temp[:,1], c='r', marker='o', label='Actual')
-
-ax.set_xlabel('X Label')
-ax.set_ylabel('Y Label')
 
 
 
-plt.legend(loc='upper left')
+plt.figure(1)
+'''
+plt.subplot(211)
+plt.plot(hist.history['acc'])
+plt.plot(hist.history['val_acc'])
+plt.title('Model Accuracy')
+plt.ylabel('Accuracy')
+plt.xlabel('epoch')
+plt.legend(['train','test'], loc='upper left')
+
+plt.subplot(212)
+'''
+plt.plot(hist.history['loss'])
+plt.plot(hist.history['val_loss'])
+plt.title('model loss')
+plt.ylabel('loss')
+plt.xlabel('epoch')
+plt.legend(['train','test'], loc='upper left')
+
+
+predictions = model.predict(test_impulses)
+
+
+fig1 = plt.figure(2)
+ax = fig1.add_subplot(111)
+
+ax.scatter(predictions[:,0], predictions[:,1], c='b', marker='x', label="Predictions")
+ax.scatter(test_labels[:,0], test_labels[:,1], c='r', marker='o', label="Actual")
+
+ax.set_xlabel('X')
+ax.set_ylabel('Y')
+ax.legend(loc='upper left')
+
 plt.show()
+
