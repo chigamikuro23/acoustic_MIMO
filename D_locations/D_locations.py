@@ -4,8 +4,10 @@ from tensorflow import keras
 import numpy as np
 import math
 import matplotlib.pyplot as plt
+from keras import backend as K
+def rmse(y_pred, y_actual):
 
-
+    return K.sqrt(K.mean(K.square(y_pred -y_actual), axis = -1))
 
 #Read .mat data into memory
 EPOCHS = 10
@@ -61,10 +63,10 @@ model = keras.Sequential([
 optimizer = keras.optimizers.Adam(lr=0.01, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0, amsgrad=False)
 model.compile(optimizer=optimizer,
               loss='mse',
-              metrics=['mae'])
+              metrics=[rmse])
 
 early_stop = keras.callbacks.EarlyStopping(monitor='loss', min_delta=.1)
-hist = model.fit(impulses, labels, epochs=50, batch_size = 100, callbacks=[early_stop],validation_split=.2)
+hist = model.fit(impulses, labels, epochs=10, batch_size = 200, callbacks=[early_stop],validation_split=.2)
 
 predictions = model.predict(test_impulses)
 
@@ -73,10 +75,10 @@ predictions = model.predict(test_impulses)
 plt.figure(1)
 
 plt.subplot(211)
-plt.plot(hist.history['mean_absolute_error'])
-plt.semilogy(hist.history['val_mean_absolute_error'])
-plt.title('Model Abs Error')
-plt.ylabel('Mean Error')
+plt.plot(hist.history['rmse'])
+plt.semilogy(hist.history['val_rmse'])
+plt.title('Model RMS Error')
+plt.ylabel('RMS Error')
 plt.xlabel('epoch')
 plt.legend(['train','validation'], loc='upper left')
 
@@ -98,7 +100,7 @@ ax = fig1.add_subplot(111)
 
 ax.scatter(predictions[:,0], predictions[:,1], c='b', marker='x', label="Predictions")
 ax.scatter(test_labels[:,0], test_labels[:,1], c='r', marker='o', label="Actual")
-
+#ax.plot(test_labels, predictions,'ro-')
 ax.set_xlabel('X')
 ax.set_ylabel('Y')
 ax.legend(loc='upper left')
