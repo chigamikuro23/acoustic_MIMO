@@ -8,11 +8,22 @@ f = 22000;
 lambda = v/f;
 [L, ~] = size(walls);
 [N, ~] = size(rx);
-
+alpha = 1;
+new_sinc = @(t) sin(pi.*t*alpha)*alpha./(pi.*t);
+t = linspace(-100, 100,2001);
+figure;
+y = new_sinc(t);
+y(isnan(y)) = alpha^2;
+stem(t, y);
+disp(size(y));
+fs = 44100;
+T = 1/fs;
 %Initalize impulse response vectors for each receiver based on one
 %transmitter
-h=zeros(N, 1000);
-
+h=zeros(N, fs);
+%disp(size(h));
+disp(size(h));
+num_iters = 3;
 for i=1:N
     
     
@@ -65,20 +76,30 @@ for i=1:N
         
         
         %Calculate time delay of image pulse
-        delay = round(d_l/v*1000);
-        delay2 = round(d_l2/v*1000);
+      %  delay = round(d_l/v*1000);
+        delay_bar = d_l/v*fs;
+     %   disp(delay_bar);
+       % delay2 = round(d_l2/v*1000);
+        delay_bar2 = d_l2/v*fs;
         amplitude = a_l*exp(-1i*2*pi*d_l/lambda);
         amplitude2 = a_l2*exp(-1i*2*pi*d_l2/lambda);
-        if delay+1 <= 1000
-      
-            h(i, delay+1) = amplitude;
-            h(i, delay2+1) = amplitude2;
-        end
+     %   if delay+1 <= 1000
+    %    disp(round(delay_bar));
+        h(i, round(delay_bar)-1000:round(delay_bar)+1000) = amplitude*y(:);
+        h(i, round(delay_bar2)-1000:round(delay_bar2)+1000) = amplitude2*y(:);
+     %   end
       
     end
    
-    delay = round(d_0/v*1000);
-    h(i, delay+1) = a_0*exp(-1i*2*pi*d_0/lambda);
+    %delay = round(d_0/v*1000);
+    delay_bar = d_0/v;
+    if round(delay_bar*fs)-1000>=1
+        h(i, round(delay_bar*fs)-1000:round(delay_bar*fs)+1000) = a_0*exp(-1i*2*pi*d_0/lambda)*y(:);
+    else
+        new_start = round(delay_bar*fs/20);
+        disp(new_start);
+        h(i, 1:round(delay_bar*fs)+1000) = a_0*exp(-1i*2*pi*d_0/lambda)*y(ceil(end/2)-new_start+1:end);
+    end
 end
 
 end

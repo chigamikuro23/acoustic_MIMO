@@ -21,13 +21,13 @@ num_trans = 2048;
 
 %Randomly generate transmitter locations
 %tx_locs = [10.*rand(num_trans, 1) 10.*rand(num_trans, 1)];
-tx = [10.*rand(1, 1) 10.*rand(1, 1)];
+tx = [3 2];
 %Instantiate impulse and transmitter vectors for writing
-ret_impulses = zeros(32, 1000, num_trans);
+%ret_impulses = zeros(32, 1000, num_trans);
 transmitters = zeros(num_trans,2);
 
 %Find impulse responses of each transmitter from each receiver
-impulse = response(tx, rx, walls);
+impulse = responses(tx, rx_loc(1), walls);
 %for i = 1:num_trans
 %    tx_loc = tx_locs(i, :);
 %    transmitters(i,:) = tx_loc;
@@ -35,7 +35,27 @@ impulse = response(tx, rx, walls);
 %    ret_impulses(:,:, i) = impulses;
 %end
 %Plot one impulse response
+disp(size(impulse));
 
+set(groot,'defaultLineLineWidth',1);
+set(0,'defaultAxesFontSize',13);
+figure;
+
+plot(real(impulse));
+hold on;
+hold off;
+xlabel('Samples');
+ylabel('Real value');
+title('Real part of impulse response, fs = 44.1kHz');
+
+figure;
+plot(abs(impulse));
+hold on;
+hold off;
+xlabel('Samples');
+ylabel('Magnitude');
+title('Magnitude of impulse response, fs = 44.1kHz');
+%{
 rolloff = .25;
 span = 6;
 sps = 4;
@@ -43,27 +63,27 @@ sps = 4;
 b = rcosdesign(rolloff, span, sps);
 
 fs = 44100;
-x = ret_impulses(16,:,1024);
+x = impulse(1,:);
+
 s = upfirdn(x,b, sps);
 r = s + randn(size(s))*.01;
 y = upfirdn(r,b, 1, sps);
-figure;
-plot(y);
+
 
 f_xr = abs(fft(x))/sqrt(length(x));
 
 figure;
 xas = linspace(0,fs/2,round(length(f_xr)/2));
-plot(xas,f_xr(1:round(length(f_xr)/2)))
+plot(xas,abs(f_xr(1:round(length(f_xr)/2))))
 xlabel('Frequency [Hz]')
 ylabel('Power spectrum [dB]')
 
 figure;
-stem(abs(ret_impulses(16,:,1024)));
+stem(abs(x));
 title('Magnitude of Impulse response with delays')
 xlabel('Time (ms) from Signal impulse');
 ylabel('Amplitude');
-
+%}
 %Save variables to file
-save('impulses.mat', 'ret_impulses');
-save('tx_locations.mat', 'transmitters');
+%save('impulses.mat', 'ret_impulses');
+%save('tx_locations.mat', 'transmitters');
