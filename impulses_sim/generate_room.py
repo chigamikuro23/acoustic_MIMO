@@ -74,7 +74,7 @@ def get_distances(tx_locations, rx, distances):
     print(tx)
     if not isinstance(tx, (list,)):
       distance = tx.l2distance(rx)
-      distances.append([tx, distance])
+      distances.append((tx, distance))
     else:
       get_distances(tx, rx, distances)
   
@@ -90,12 +90,17 @@ seen = set()
 create_room(tx, walls, 20, 10, 0, 1, ref_list, seen)
 room = [tx]
 room.append(ref_list)
-print(room)
+#print(room)
 rx = Coord(5,4)
 distances = []
 get_distances(room, rx, distances)
-print(distances)
+#print(distances)
 
+distances.sort(key=lambda x: x[1])
+
+#print(distances)
+att = [(item[0], 1/item[1]) for item in distances]
+print(att)
 
 
 #my_set = set([tx, Coord(4,5), Coord(2,3)])
