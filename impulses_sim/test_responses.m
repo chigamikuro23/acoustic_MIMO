@@ -35,6 +35,7 @@ impulse = responses(tx, rx_loc(1), walls);
 %    ret_impulses(:,:, i) = impulses;
 %end
 %Plot one impulse response
+
 disp(size(impulse));
 
 set(groot,'defaultLineLineWidth',1);

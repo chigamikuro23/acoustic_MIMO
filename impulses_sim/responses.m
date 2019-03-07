@@ -67,7 +67,7 @@ for i=1:N
         
         %Use law of cosines to get distance between receiver and source
         %image
-        d_l =  d_0^2 + dist_image^2 - 2*d_0*dist_image*cos(theta);
+        d_l =  sqrt(d_0^2 + dist_image^2 - 2*d_0*dist_image*cos(theta));
         a_l = 1/d_l;
         
         d_l2 = abs(d_l - new_dist);
@@ -84,9 +84,10 @@ for i=1:N
         amplitude = a_l*exp(-1i*2*pi*d_l/lambda);
         amplitude2 = a_l2*exp(-1i*2*pi*d_l2/lambda);
      %   if delay+1 <= 1000
-    %    disp(round(delay_bar));
-        h(i, round(delay_bar)-1000:round(delay_bar)+1000) = amplitude*y(:);
-        h(i, round(delay_bar2)-1000:round(delay_bar2)+1000) = amplitude2*y(:);
+        disp(round(delay_bar));
+        disp(round(delay_bar2)-1000);
+        h(i, round(delay_bar)-500:round(delay_bar)+1500) = amplitude*y(:);
+        h(i, round(delay_bar2)-500:round(delay_bar2)+1500) = amplitude2*y(:);
      %   end
       
     end
@@ -94,11 +95,11 @@ for i=1:N
     %delay = round(d_0/v*1000);
     delay_bar = d_0/v;
     if round(delay_bar*fs)-1000>=1
-        h(i, round(delay_bar*fs)-1000:round(delay_bar*fs)+1000) = a_0*exp(-1i*2*pi*d_0/lambda)*y(:);
+        h(i, round(delay_bar*fs)-500:round(delay_bar*fs)+1500) = a_0*exp(-1i*2*pi*d_0/lambda)*y(:);
     else
         new_start = round(delay_bar*fs/20);
         disp(new_start);
-        h(i, 1:round(delay_bar*fs)+1000) = a_0*exp(-1i*2*pi*d_0/lambda)*y(ceil(end/2)-new_start+1:end);
+        h(i, 1:round(delay_bar*fs)-500) = a_0*exp(-1i*2*pi*d_0/lambda)*y(ceil(end/2)-new_start+1:end);
     end
 end
 
