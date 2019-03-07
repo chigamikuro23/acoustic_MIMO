@@ -1,31 +1,9 @@
-import math
+from coord import Coord
+from collections import Counter, defaultdict
 import numpy as np
-import matplotlib 
-
-class Coord:
-  def __init__(self, x, y):
-    self.x = x
-    self.y = y
-
-  def __str__(self):
-    return "({},{})".format(self.x,self.y)
-
-  def __repr__(self):
-    return str(self)
-
-  def __hash__(self):
-      return hash((self.x, self.y))
-
-  def __eq__(self, another):
-      return hash(self) == hash(another)
-
-  def l2distance(self, another):
-    return math.sqrt((self.x-another.x)**2 + (self.y-another.y)**2)
-
-
 class Room:
 
-  def __init__(self, walls, max_order=0):
+  def __init__(self, walls, max_order=0, fs = 1500, v = 340):
     self.walls = walls
     self.width = abs(walls['left'] - walls['right'])
     self.height = abs(walls['top'] - walls['bottom'])
@@ -35,6 +13,9 @@ class Room:
     self.reflections = []
     self.delays = []
     self.max_order = max_order
+    self.fs = fs
+    self.v = v
+    self.wavelength = v/fs 
     
   
   def __str__(self):
@@ -175,25 +156,31 @@ class Room:
     
     return 
 
+  def get_attenuations_at_index(self, index):
+    distance_ref = self.distances[index]
+    attenuations = [1/item[1] for item in distance_ref]
+    distances = [item[1] for item in distance_ref]
+    counter = -1
+
+    ret_att = []
+    delays = []
+    seen = set()
+    print(attenuations)
+    for dist, att in zip(distances, attenuations):
+      if att not in seen:
+
+        delays.append(dist/self.wavelength)
+        seen.add(att)
+        ret_att.append(att)
+        counter+=1
+      else:
+        ret_att[counter]+=att
+    print(ret_att)
+    print(delays)
+    return np.array(ret_att), np.array(delays)
+
+
+
   def plot_reflections_at_index(self, index):
 
     return
-
-
-def main():
-  #walls = {'top': 5, 'right': 10, 'bottom': -5, 'left':-10}
-  walls = {'top': 5, 'right': 10, 'bottom': -5, 'left':0}
-
-  tx = Coord(1, 1)
-  receivers = [Coord(3,4), Coord(4,2)]
-
-  new_room = Room(walls,3)
-  new_room.add_transmitter(tx)
-  new_room.add_receiver(receivers)
-  new_room.create_room()
-  print(new_room.get_distances_at_index(0))
-  return
-
-if __name__=="__main__":
-  main()
-
