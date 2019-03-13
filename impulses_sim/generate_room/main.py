@@ -1,36 +1,54 @@
 import math
-import numpy as np
-import matplotlib.pyplot as plt
+
 from room import Room
 from coord import Coord
-
+import numpy as np
+import matplotlib.pyplot as plt
+import sys
 
 def main():
 
-  walls = {'top': 5, 'right': 10, 'bottom': -5, 'left':-10}
+  if len(sys.argv) == 2 and sys.argv[1] == "-custom":
+    print("Custom")
 
-  tx = Coord(1, 1)
-  receivers = [Coord(3,4), Coord(4,2)]
+  else:
+    print("Default")
 
-  new_room = Room(walls,2)
-  new_room.add_transmitter(tx)
-  new_room.add_receiver(receivers)
-  new_room.create_room()
-  attenuations, delays = new_room.get_attenuations_at_index(0)
-  delays = np.round(delays).astype(int)
-  print(delays)
-  plot_arr = np.zeros(np.amax(delays))
-  
-  h = attenuations*np.exp(-1j*2*np.pi*delays)
-  for i in range(len(delays)):
-    print(h[i])
-    plot_arr[(delays[i]-1)] = np.real(h[i]) 
+    walls = {'top': 10, 'right': 10, 'bottom': -10, 'left':-10}
 
-  plt.stem(plot_arr)
-  plt.ylabel('Impulse response')
-  plt.xlabel('Time')
-  plt.show()
+    tx = Coord(5,5)
+    receivers = [Coord(3,4), Coord(5,6), Coord(5,5)]
 
+    index = 1
+    amplitude = 1
+    noise_mean = 0
+    noise_stdev = .01
+    new_room = Room(walls,3)
+    alpha = 1
+    function = np.sinc
+
+    SNR = 10
+
+    new_room.add_transmitter(tx)
+    new_room.add_receiver(receivers)
+    new_room.create_room()
+
+
+    print(new_room)
+
+
+    new_room.calculate_h(amplitude, index)
+
+    #Add standard white gaussian noise
+    #new_room.pulse_shape(function, alpha)
+    #new_room.add_noise(noise_mean, noise_stdev)
+    new_room.plot_h_at_index(index)
+    new_room.plot_fft()
+
+    plt.show()
+
+    
+    
 
 
 

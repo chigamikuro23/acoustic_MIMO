@@ -1,9 +1,10 @@
 from coord import Coord
 from collections import Counter, defaultdict
 import numpy as np
+import matplotlib.pyplot as plt
 class Room:
 
-  def __init__(self, walls, max_order=0, fs = 1500, v = 340):
+  def __init__(self, walls, max_order=0, fs = 22000, v = 340):
     self.walls = walls
     self.width = abs(walls['left'] - walls['right'])
     self.height = abs(walls['top'] - walls['bottom'])
@@ -16,11 +17,11 @@ class Room:
     self.fs = fs
     self.v = v
     self.wavelength = v/fs 
-    
+    self.h = None
   
   def __str__(self):
 
-    return "Walls:{}, Width: {}, Height:{}, \n Tx(s): {} \n Rx(s):{} \n Max Order: {},\n Ref: {}\n Distances: {}".format(self.walls, self.width, self.height, self.transmitters, self.receivers, self.max_order,  self.reflections, self.distances)
+    return "Walls:{} \n Width: {}, Height:{} \n Tx(s): {} \n Rx(s):{} \n Max Reflection Order: {}\n Sampling Frequency: {}Hz \n Sound Velocity: {} m/s".format(self.walls, self.width, self.height, self.transmitters, self.receivers, self.max_order, self.fs, self.v)
 
 
 
@@ -165,7 +166,7 @@ class Room:
     ret_att = []
     delays = []
     seen = set()
-    print(attenuations)
+  #  print(attenuations)
     for dist, att in zip(distances, attenuations):
       if att not in seen:
 
@@ -175,12 +176,70 @@ class Room:
         counter+=1
       else:
         ret_att[counter]+=att
-    print(ret_att)
-    print(delays)
+ #   print(ret_att)
+ #   print(delays)
     return np.array(ret_att), np.array(delays)
 
+  def calculate_h(self, impulse_amplitude, index):
+    attenuations, delays = self.get_attenuations_at_index(index)
+    delays = np.round(delays).astype(int)
+    #print(delays)
+    self.h = np.zeros(np.amax(delays), dtype=complex)
+    print(f"Impulse amplitude = {impulse_amplitude}")
+    h_list = impulse_amplitude * attenuations*np.exp(-1j*2*np.pi*delays)
+    for i in range(len(delays)):
+    ##  print(h[i])
+      self.h[(delays[i]-1)] = h_list[i] 
 
 
-  def plot_reflections_at_index(self, index):
+  def plot_h_at_index(self, index):
+
+    plt.figure()
+    t = np.linspace(0, len(self.h)/self.fs, len(self.h))
+    plt.stem(t, np.real(self.h))
+
+    plt.title("Impulse response, Tx at {}, Rx at {}, max_order = {}".format(self.transmitters[0], self.receivers[index], self.max_order))
+    plt.ylabel('Magnitude')
+    plt.xlabel('Time (s)')
+    
+
+
+  def plot_fft(self):
+    plt.figure()
+    
+    #impulse = np.zeros(len(self.h))
+    #impulse[0] = 1
+    fft = np.fft.fft(self.h)
+    freq = np.fft.fftfreq(len(self.h))
+    
+    plt.plot(freq, np.abs(fft))
+
 
     return
+
+
+  def pulse_shape(self, function, alpha):
+
+    #pulse shaping with alpha
+    plt.figure()
+    index = np.linspace(-1,1,21)
+    sinc = function(index)
+    plt.stem(index,sinc)
+
+    return
+
+  def add_noise(self, mean, stdev):
+    noise = np.random.normal(mean, stdev, len(self.h))
+    print("Adding noise with mean {} and variance {}".format(mean, stdev**2))
+    self.h += noise
+
+
+    return
+
+ 
+
+
+
+
+
+
