@@ -12,8 +12,10 @@ def main():
     print("Custom")
 
   else:
+
     print("Default")
 
+	
     walls = {'top': 10, 'right': 10, 'bottom': -10, 'left':-10}
 
     tx = Coord(5,5)
@@ -40,10 +42,13 @@ def main():
     new_room.calculate_h(amplitude, index)
 
     #Add standard white gaussian noise
-    #new_room.pulse_shape(function, alpha)
-    #new_room.add_noise(noise_mean, noise_stdev)
+    upsample_factor = 10
+    filter_type = 'rectangular'
+    new_room.pulse_shape(filter_type, upsample_factor)
+    SNR_dB = 5
+    new_room.add_gaussian_noise(SNR_dB)
     new_room.plot_h_at_index(index)
-    new_room.plot_fft()
+    new_room.plot_fft(filter_type, upsample_factor)
 
     plt.show()
 

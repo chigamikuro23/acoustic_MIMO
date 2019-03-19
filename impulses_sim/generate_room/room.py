@@ -2,6 +2,7 @@ from coord import Coord
 from collections import Counter, defaultdict
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.signal import upfirdn
 class Room:
 
   def __init__(self, walls, max_order=0, fs = 22000, v = 340):
@@ -196,41 +197,62 @@ class Room:
 
     plt.figure()
     t = np.linspace(0, len(self.h)/self.fs, len(self.h))
-    plt.stem(t, np.real(self.h))
+    plt.plot(t, np.real(self.h))
 
     plt.title("Impulse response, Tx at {}, Rx at {}, max_order = {}".format(self.transmitters[0], self.receivers[index], self.max_order))
-    plt.ylabel('Magnitude')
-    plt.xlabel('Time (s)')
+    plt.ylabel('Real Amplitude')
+    plt.xlabel('Index')
     
 
 
-  def plot_fft(self):
+  def plot_fft(self, filter_type, upsample_factor):
     plt.figure()
     
     #impulse = np.zeros(len(self.h))
     #impulse[0] = 1
+
     fft = np.fft.fft(self.h)
     freq = np.fft.fftfreq(len(self.h))
     
     plt.plot(freq, np.abs(fft))
 
+    plt.title(f"FFT with upsample factor {upsample_factor}; Filter type: {filter_type}")
+    plt.ylabel('FFT Amplitude')
+    plt.xlabel('Freq (kHz)')
 
     return
 
 
-  def pulse_shape(self, function, alpha):
+
+  def pulse_shape(self, filter_type, f):
 
     #pulse shaping with alpha
     plt.figure()
-    index = np.linspace(-1,1,21)
-    sinc = function(index)
-    plt.stem(index,sinc)
+    
+    print(f"Filter type: {filter_type}")
+    print(f"Upsample factor: {f}")
+    upsample_vector = upfirdn([1], self.h, f)
+    
+    my_filter = None
+    if filter_type == "rectangular":
+      my_filter = np.ones(f)
+    else:
+      my_filter =np.sin(np.pi*np.arange(-f,f+1/f,1/f))/(np.pi*np.arange(-f,f+1/f,1/f))
+   
+  
+   
+    convolved = np.convolve(upsample_vector, my_filter)
+   
+    self.h = convolved
+  
 
     return
 
-  def add_noise(self, mean, stdev):
-    noise = np.random.normal(mean, stdev, len(self.h))
-    print("Adding noise with mean {} and variance {}".format(mean, stdev**2))
+  def add_gaussian_noise(self, SNR_dB):
+    p_noise = 1/self.fs/10**(SNR_dB/10)
+
+    noise = np.random.normal(0, np.sqrt(p_noise), len(self.h))
+    print(f"Adding gaussian noise with power {p_noise}")
     self.h += noise
 
 
