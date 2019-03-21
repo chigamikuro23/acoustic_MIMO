@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from scipy.signal import upfirdn
 class Room:
 
-  def __init__(self, walls, max_order=0, fs = 22000, v = 340):
+  def __init__(self, walls, max_order=0, fs = 4410, v = 340):
     self.walls = walls
     self.width = abs(walls['left'] - walls['right'])
     self.height = abs(walls['top'] - walls['bottom'])
@@ -83,7 +83,9 @@ class Room:
 
   #Wrapper function that creates the room reflections based on the transmitter(s) and receiver(s) that are inside this room
   def create_room(self):
-    
+    if not self.transmitters or not self.receivers:
+      raise("Need at least one transmitter or receiver available")
+
     if self.transmitters:
       seen = set()
       room = [self.transmitters[0]]
@@ -199,10 +201,12 @@ class Room:
     t = np.linspace(0, len(self.h)/self.fs, len(self.h))
     plt.plot(t, np.real(self.h))
 
+
+
     plt.title("Impulse response, Tx at {}, Rx at {}, max_order = {}".format(self.transmitters[0], self.receivers[index], self.max_order))
     plt.ylabel('Real Amplitude')
-    plt.xlabel('Index')
-    
+    plt.xlabel('Time')
+        
 
 
   def plot_fft(self, filter_type, upsample_factor):
@@ -224,27 +228,24 @@ class Room:
 
 
 
-  def pulse_shape(self, filter_type, f):
+  def pulse_shape(self, filter_type, factor):
 
-    #pulse shaping with alpha
-    plt.figure()
-    
+
     print(f"Filter type: {filter_type}")
-    print(f"Upsample factor: {f}")
-    upsample_vector = upfirdn([1], self.h, f)
+    print(f"Upsample factor: {factor}")
+    upsample_vector = upfirdn([1], self.h, factor)
     
     my_filter = None
     if filter_type == "rectangular":
-      my_filter = np.ones(f)
+      my_filter = np.ones(factor)
     else:
-      my_filter =np.sin(np.pi*np.arange(-f,f+1/f,1/f))/(np.pi*np.arange(-f,f+1/f,1/f))
-   
-  
-   
+      my_filter =np.sin(np.pi*np.arange(-factor,factor+1/factor,1/factor))/(np.pi*np.arange(-factor,factor+1/factor,1/factor))
+      
     convolved = np.convolve(upsample_vector, my_filter)
-   
+    self.fs = self.fs*factor
     self.h = convolved
   
+    print(len(self.h))
 
     return
 
