@@ -3,9 +3,10 @@ from collections import Counter, defaultdict
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.signal import upfirdn
+from scipy.io import wavfile
 class Room:
 
-  def __init__(self, walls, max_order=0, fs = 4410, v = 340):
+  def __init__(self, walls, max_order=0, upsample_factor = 10, fs = 4410, v = 340):
     self.walls = walls
     self.width = abs(walls['left'] - walls['right'])
     self.height = abs(walls['top'] - walls['bottom'])
@@ -16,6 +17,7 @@ class Room:
     self.delays = []
     self.max_order = max_order
     self.fs = fs
+    self.fs_upsampled = fs*upsample_factor
     self.v = v
     self.wavelength = v/fs 
     self.h = None
@@ -82,16 +84,20 @@ class Room:
 
 
   #Wrapper function that creates the room reflections based on the transmitter(s) and receiver(s) that are inside this room
-  def create_room(self):
+  def create_room(self, tx_index):
     if not self.transmitters or not self.receivers:
-      raise("Need at least one transmitter or receiver available")
+      raise("Need at least one transmitter and receiver available")
 
     if self.transmitters:
+      self.distances = []
+      self.reflections = []
+      self.delays = []
+      self.h = None
       seen = set()
-      room = [self.transmitters[0]]
+      room = [self.transmitters[tx_index]]
 
       if self.max_order > 0:
-        self.create_room_rec(self.transmitters[0], self.walls, self.width, self.height, 1, self.reflections, seen)
+        self.create_room_rec(self.transmitters[tx_index], self.walls, self.width, self.height, 1, self.reflections, seen)
         room.append(self.reflections)
       
       for receiver in self.receivers:
@@ -183,27 +189,29 @@ class Room:
  #   print(delays)
     return np.array(ret_att), np.array(delays)
 
-  def calculate_h(self, impulse_amplitude, index):
-    attenuations, delays = self.get_attenuations_at_index(index)
+  def calculate_h(self, tx_index, rx_index):
+    attenuations, delays = self.get_attenuations_at_index(rx_index)
     delays = np.round(delays).astype(int)
     #print(delays)
-    self.h = np.zeros(np.amax(delays), dtype=complex)
-    print(f"Impulse amplitude = {impulse_amplitude}")
-    h_list = impulse_amplitude * attenuations*np.exp(-1j*2*np.pi*delays)
+    self.h = np.zeros(self.fs, dtype=complex)
+
+
+    h_list = attenuations*np.exp(-1j*2*np.pi*delays)
     for i in range(len(delays)):
     ##  print(h[i])
       self.h[(delays[i]-1)] = h_list[i] 
 
+    print(len(self.h))
 
-  def plot_h_at_index(self, index):
+  def plot_h_at_index(self, tx_index, rx_index, SNR_dB = None):
 
     plt.figure()
-    t = np.linspace(0, len(self.h)/self.fs, len(self.h))
+    t = np.linspace(0, len(self.h)/self.fs_upsampled, len(self.h))
     plt.plot(t, np.real(self.h))
 
 
 
-    plt.title("Impulse response, Tx at {}, Rx at {}, max_order = {}".format(self.transmitters[0], self.receivers[index], self.max_order))
+    plt.title("Tx at {}, Rx at {}, max_order = {}".format(self.transmitters[tx_index], self.receivers[rx_index], self.max_order))
     plt.ylabel('Real Amplitude')
     plt.xlabel('Time')
         
@@ -242,15 +250,17 @@ class Room:
       my_filter =np.sin(np.pi*np.arange(-factor,factor+1/factor,1/factor))/(np.pi*np.arange(-factor,factor+1/factor,1/factor))
       
     convolved = np.convolve(upsample_vector, my_filter)
-    self.fs = self.fs*factor
-    self.h = convolved
+    self.h = convolved[0:44100]
   
     print(len(self.h))
 
     return
 
-  def add_gaussian_noise(self, SNR_dB):
-    p_noise = 1/self.fs/10**(SNR_dB/10)
+  def add_gaussian_noise(self, input_signal, SNR_dB):
+    print(f"SNR_dB = {SNR_dB}")
+    print(self.fs_upsampled)
+    p_signal = np.mean(abs(input_signal)**2)
+    p_noise = p_signal*(10**(-SNR_dB/10.0))
 
     noise = np.random.normal(0, np.sqrt(p_noise), len(self.h))
     print(f"Adding gaussian noise with power {p_noise}")
@@ -260,6 +270,20 @@ class Room:
     return
 
  
+  def write_to_wav(self, filename):
+    wavfile.write(filename, self.fs_upsampled, self.h.astype('f8'))
+    return
+
+  def read_wav_and_plot(self, filename):
+    fs, data = wavfile.read(filename)
+    plt.figure()
+    t = np.linspace(0, len(data)/fs, len(data))
+    plt.plot(t, np.real(data))
+
+    plt.ylabel('Real Amplitude')
+    plt.xlabel('Time')
+    return 
+
 
 
 
