@@ -9,7 +9,7 @@ class Coord:
     self.y = y
 
   def __str__(self):
-    return "({},{})".format(self.x,self.y)
+    return "({:.1f},{:.1f})".format(self.x,self.y)
 
   def __repr__(self):
     return str(self)

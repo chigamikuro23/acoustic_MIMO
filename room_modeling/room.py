@@ -2,7 +2,7 @@ from coord import Coord
 from collections import Counter, defaultdict
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.signal import upfirdn
+from scipy.signal import upfirdn, resample
 from scipy.io import wavfile
 class Room:
 
@@ -163,11 +163,13 @@ class Room:
       else:
         self.calculate_distances(tx, rx, distances)
         distances.sort(key=lambda x: x[1])
+ 
     
     return 
 
   def get_attenuations_at_index(self, index):
     distance_ref = self.distances[index]
+    #print(distance_ref)
     attenuations = [1/item[1] for item in distance_ref]
     distances = [item[1] for item in distance_ref]
     counter = -1
@@ -201,17 +203,17 @@ class Room:
     ##  print(h[i])
       self.h[(delays[i]-1)] = h_list[i] 
 
-    print(len(self.h))
-
-  def plot_h_at_index(self, tx_index, rx_index, SNR_dB = None):
+ #   print(len(self.h))
+    return 
+  def plot_h_at_index(self, tx_index, rx_index, freq):
 
     plt.figure()
-    t = np.linspace(0, len(self.h)/self.fs_upsampled, len(self.h))
+    t = np.linspace(0, len(self.h)/freq, len(self.h))
     plt.plot(t, np.real(self.h))
 
 
 
-    plt.title("Tx at {}, Rx at {}, max_order = {}".format(self.transmitters[tx_index], self.receivers[rx_index], self.max_order))
+    plt.title("Position at {}, Rx at {}, max_order = {}".format(self.transmitters[tx_index], self.receivers[rx_index], self.max_order))
     plt.ylabel('Real Amplitude')
     plt.xlabel('Time')
         
@@ -219,11 +221,8 @@ class Room:
 
   def plot_fft(self, filter_type, upsample_factor):
     plt.figure()
-    
-    #impulse = np.zeros(len(self.h))
-    #impulse[0] = 1
 
-    fft = np.fft.fft(self.h)
+    fft = np.fft.fft(self.h)/np.sqrt(len(self.h))
     freq = np.fft.fftfreq(len(self.h))
     
     plt.plot(freq, np.abs(fft))
@@ -239,8 +238,8 @@ class Room:
   def pulse_shape(self, filter_type, factor):
 
 
-    print(f"Filter type: {filter_type}")
-    print(f"Upsample factor: {factor}")
+   # print(f"Filter type: {filter_type}")
+   # print(f"Upsample factor: {factor}")
     upsample_vector = upfirdn([1], self.h, factor)
     
     my_filter = None
@@ -250,11 +249,12 @@ class Room:
       my_filter =np.sin(np.pi*np.arange(-factor,factor+1/factor,1/factor))/(np.pi*np.arange(-factor,factor+1/factor,1/factor))
       
     convolved = np.convolve(upsample_vector, my_filter)
-    self.h = convolved[0:44100]
+    self.h = convolved[0:self.fs_upsampled]
   
-    print(len(self.h))
+   # print(len(self.h))
 
     return
+
 
   def add_gaussian_noise(self, input_signal, SNR_dB):
     print(f"SNR_dB = {SNR_dB}")
@@ -282,7 +282,33 @@ class Room:
 
     plt.ylabel('Real Amplitude')
     plt.xlabel('Time')
-    return 
+    return fs, data
+
+  def convolve_input(self, tx_value, rx_value, filename):
+    fs, data = wavfile.read(filename)
+    self.h = upfirdn([1], self.h, 10)
+    other = resample(self.h, fs)
+
+    length = len(data)
+    plt.figure()
+    plt.plot(data)
+    plt.title(f"Input speech, fs={fs}")
+    plt.ylabel('Amplitude')
+    plt.xlabel('Time index')
+
+    print(data.dtype)
+    output = np.convolve(other, data)
+    plt.figure()
+    plt.plot(output[0:length])
+    plt.title(f"Tx:{tx_value}, Rx:{rx_value}, Convolved, max_order = {self.max_order}, fs = {fs}")
+    plt.ylabel('Amplitude')
+    plt.xlabel('Time index')
+
+    tx_str = str(tx_value).replace(".","_")
+    rx_str = str(rx_value).replace(".","_")
+    out_filename = tx_str + rx_str + "_output.wav" 
+    wavfile.write(out_filename, fs, output.astype('int16') )
+    return output
 
 
 
