@@ -23,14 +23,22 @@ def main():
    # transmitters = [Coord(4,4), Coord(3,7), Coord(-9,3), Coord(-3,2), Coord(-5, -4), Coord(4,-7), Coord(6,-9), Coord(-4,-1), Coord(-9,-9), Coord(2,8),
    # Coord(1,1), Coord(8,9), Coord(-9,-2), Coord(-6,-5), Coord(-8, -9), Coord(2,-3), Coord(0,-4), Coord(-2,-2), Coord(-8,-2), Coord(7,2)]
    # transmitters = [Coord(-9.0,-9.0)]
+		num_ant = 16
+		receivers = []
+		rx_delta = .10
+		y_start = -0.5
+		for i in range(num_ant):
+			y = y_start + i*rx_delta
+			receivers.append(Coord(-9.90,y))
 
-	  
-		receivers = [Coord(3.0,4.0), Coord(-3.0, -4.0)]
+		print(receivers)
+		#receivers = [Coord(3.0,4.0), Coord(-3.0, -4.0)]
+
 		tx_index = 0
 		rx_index = 1
 		amplitude = 1
 
-		new_room = Room(walls,1)
+		new_room = Room(walls,3)
 		margin = .5
 		width = new_room.width - margin 
 		height = new_room.height - margin
@@ -69,6 +77,7 @@ def main():
 		real = []
 		imag = []
 		num_time_samples = 10
+		SNR_dB = 10
 		t = -1
 		h = None
 		for tx_index, tx_value in enumerate(transmitters):
@@ -77,18 +86,19 @@ def main():
 			for rx_index, rx_value in enumerate(receivers):
 				new_room.create_room(tx_index)
 				new_room.calculate_h(tx_index, rx_index)
-				if (rx_value.l2distance(tx_value) <=1):
-					
+				new_room.add_channel_noise(SNR_dB)
+			#	if (rx_value.l2distance(tx_value) <=1):
+				if False:		
 					new_room.convolve_input(tx_value, rx_value, "speech.wav")
 				else:
 					new_room.pulse_shape(filter_type, upsample_factor)
 				if (t == -1): 
-					t = np.argmax(new_room.h>0)
+					t = np.argmax(new_room.h) -5
 					print(t)
 				
 	    			
 
-				value = np.sum(new_room.h[t:t+num_time_samples])/num_time_samples
+				value = np.mean(new_room.h[t:t+num_time_samples])
 
 		#new_room.plot_h_at_index(tx_index, rx_index)
 		# new_room.plot_fft(filter_type, upsample_factor)
@@ -101,7 +111,7 @@ def main():
 	    
 	   # print(input_fs)
 
-	   fs, data = wavfile.read(filename)
+	  # fs, data = wavfile.read(filename)
 
 
 
@@ -114,18 +124,20 @@ def main():
 		real = np.array(real)
 		imag = np.array(imag)
 		print(positions)
-		num_ant = len(receivers)
+		
 		num_samples = num_rows * num_cols
 
 		print(real.shape)
 		print(imag.shape)
 		h_coeff_real = np.hstack((real, imag))
+		par = {"sampling_freq": new_room.fs_upsampled, "max_order": new_room.max_order, "num_samples":num_samples, "num_ant":num_ant, "upsampling_factor":10, "room_width":new_room.width, "room_height":new_room.height, "channel_SNR_dB": SNR_dB, "pulse_shape_fct":filter_type}
 
-
-		mat_contents = { "h_coeff_real":h_coeff_real.transpose(), "index":indices, "num_ant":num_ant, "num_samples":num_samples, "positions":np.array(positions).transpose()}
+		mat_contents = { "h_coeff_real":h_coeff_real.transpose(), "index":indices, "num_ant":num_ant, "num_samples":num_samples, "par":par, "positions":np.array(positions).transpose()}
 		sio.savemat("impulses.mat", mat_contents)
 
 		#print(mat_contents)
+		new_room.plot_h_at_index(tx_value, rx_value, new_room.fs_upsampled)
+		new_room.plot_fft(filter_type, 10)
 		plt.show()
 
 if __name__=="__main__":

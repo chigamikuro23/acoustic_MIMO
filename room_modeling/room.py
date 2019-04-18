@@ -205,17 +205,22 @@ class Room:
 
  #   print(len(self.h))
     return 
-  def plot_h_at_index(self, tx_index, rx_index, freq):
+  def plot_h_at_index(self, tx_value, rx_value, freq):
 
     plt.figure()
     t = np.linspace(0, len(self.h)/freq, len(self.h))
+    
     plt.plot(t, np.real(self.h))
-
-
-
-    plt.title("Position at {}, Rx at {}, max_order = {}".format(self.transmitters[tx_index], self.receivers[rx_index], self.max_order))
+    plt.title("Position at {}, Rx at {}, max_order = {}".format(tx_value, rx_value, self.max_order))
     plt.ylabel('Real Amplitude')
     plt.xlabel('Time')
+
+    plt.figure()
+    plt.plot(t, np.imag(self.h))
+    plt.title("Position at {}, Rx at {}, max_order = {}".format(tx_value, rx_value, self.max_order))
+    plt.ylabel('Imginary Amplitude')
+    plt.xlabel('Time')
+    return
         
 
 
@@ -256,14 +261,14 @@ class Room:
     return
 
 
-  def add_gaussian_noise(self, input_signal, SNR_dB):
-    print(f"SNR_dB = {SNR_dB}")
-    print(self.fs_upsampled)
-    p_signal = np.mean(abs(input_signal)**2)
+  def add_channel_noise(self, SNR_dB):
+   # print(f"SNR_dB = {SNR_dB}")
+    #print(self.fs_upsampled)
+    p_signal = np.mean(np.square(np.absolute(self.h)))
     p_noise = p_signal*(10**(-SNR_dB/10.0))
 
-    noise = np.random.normal(0, np.sqrt(p_noise), len(self.h))
-    print(f"Adding gaussian noise with power {p_noise}")
+    noise = np.random.normal(0, np.sqrt(p_noise/2), len(self.h)) + 1j*np.random.normal(0, np.sqrt(p_noise/2), len(self.h))
+ #   print(f"Adding gaussian noise with power {p_noise}")
     self.h += noise
 
 
@@ -304,9 +309,10 @@ class Room:
     plt.ylabel('Amplitude')
     plt.xlabel('Time index')
 
+    folder_str = "output_speeches/"
     tx_str = str(tx_value).replace(".","_")
     rx_str = str(rx_value).replace(".","_")
-    out_filename = tx_str + rx_str + "_output.wav" 
+    out_filename = folder_str + tx_str + rx_str + "_output.wav" 
     wavfile.write(out_filename, fs, output.astype('int16') )
     return output
 
