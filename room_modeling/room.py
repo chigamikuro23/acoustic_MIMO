@@ -17,6 +17,7 @@ class Room:
     self.delays = []
     self.max_order = max_order
     self.fs = fs
+    self.upsample_factor = upsample_factor
     self.fs_upsampled = fs*upsample_factor
     self.v = v
     self.wavelength = v/fs 
@@ -213,45 +214,48 @@ class Room:
     plt.plot(t, np.real(self.h))
     plt.title("Position at {}, Rx at {}, max_order = {}".format(tx_value, rx_value, self.max_order))
     plt.ylabel('Real Amplitude')
-    plt.xlabel('Time')
+    plt.xlabel('Time (s)')
 
     plt.figure()
     plt.plot(t, np.imag(self.h))
     plt.title("Position at {}, Rx at {}, max_order = {}".format(tx_value, rx_value, self.max_order))
-    plt.ylabel('Imginary Amplitude')
-    plt.xlabel('Time')
+    plt.ylabel('Imaginary Amplitude')
+    plt.xlabel('Time (s)')
     return
         
 
 
-  def plot_fft(self, filter_type, upsample_factor):
-    plt.figure()
+  def get_fft(self, filter_type):
+   # plt.figure()
 
     fft = np.fft.fft(self.h)/np.sqrt(len(self.h))
-    freq = np.fft.fftfreq(len(self.h))
+    freq = np.fft.fftfreq(len(self.h), d=1/self.fs_upsampled)
     
-    plt.plot(freq, np.abs(fft))
+   # plt.plot(freq, np.abs(fft))
 
-    plt.title(f"FFT with upsample factor {upsample_factor}; Filter type: {filter_type}")
-    plt.ylabel('FFT Amplitude')
-    plt.xlabel('Freq (kHz)')
+   # plt.title(f"FFT with upsample factor {self.upsample_factor}; Filter type: {filter_type}")
+   # plt.ylabel('FFT Amplitude')
+  #  plt.xlabel('Freq (kHz)')
 
-    return
+    return freq, fft
 
 
 
-  def pulse_shape(self, filter_type, factor):
+  def pulse_shape(self, filter_type):
 
 
    # print(f"Filter type: {filter_type}")
    # print(f"Upsample factor: {factor}")
+    factor = self.upsample_factor
+   # print(factor)
     upsample_vector = upfirdn([1], self.h, factor)
     
     my_filter = None
     if filter_type == "rectangular":
       my_filter = np.ones(factor)
     else:
-      my_filter =np.sin(np.pi*np.arange(-factor,factor+1/factor,1/factor))/(np.pi*np.arange(-factor,factor+1/factor,1/factor))
+     # my_filter =np.sin(np.pi*np.arange(-factor,factor+1/factor,1/factor))/(np.pi*np.arange(-factor,factor+1/factor,1/factor))
+      my_filter = np.sinc(np.arange(-factor,factor+1/factor,1/factor))
       
     convolved = np.convolve(upsample_vector, my_filter)
     self.h = convolved[0:self.fs_upsampled]
